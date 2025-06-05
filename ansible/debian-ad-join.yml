@@ -1,0 +1,57 @@
+---
+- name: Join Debian to Active Directory
+  hosts: all
+  become: yes
+  vars:
+    domain: example.com
+    domain_base_dn: dc=example,dc=com
+    ad_user: Administrator
+    packages:
+      - realmd
+      - sssd
+      - sssd-tools
+      - libnss-sss
+      - libpam-sss
+      - adcli
+      - samba-common-bin
+      - oddjob
+      - oddjob-mkhomedir
+      - packagekit
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name: "{{ packages }}"
+        state: present
+        update_cache: yes
+
+    - name: Join domain
+      command: realm join -U {{ ad_user }} {{ domain }}
+      register: realm_join
+      changed_when: "'already joined' not in realm_join.stdout"
+
+    - name: Configure SSSD
+      copy:
+        dest: /etc/sssd/sssd.conf
+        content: |
+          [sssd]
+          services = nss, pam
+          config_file_version = 2
+          domains = {{ domain }}
+
+          [domain/{{ domain }}]
+          id_provider = ad
+          ad_domain = {{ domain }}
+          auth_provider = ad
+          access_provider = ad
+          ldap_sudo_search_base = ou=Sudoers,{{ domain_base_dn }}
+        owner: root
+        group: root
+        mode: '0600'
+      notify: restart sssd
+
+  handlers:
+    - name: restart sssd
+      service:
+        name: sssd
+        state: restarted

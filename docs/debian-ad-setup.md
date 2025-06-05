@@ -73,6 +73,8 @@ Verify `/etc/nsswitch.conf` contains `sss` entries for `passwd`, `group` and `sh
 
 ## Automation Hints
 
-* Wrap the above steps into an Ansible playbook using the `realm` and `sssd_conf` modules.
+* The repository includes an example playbook at
+  [`ansible/debian-ad-join.yml`](../ansible/debian-ad-join.yml) that installs the
+  required packages, joins the host to the domain and configures SSSD.
 * Use cloud-init or shell scripts to automate package installation and domain join during provisioning.
 
